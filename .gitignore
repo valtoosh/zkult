@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Build outputs
+build/
+dist/
+frontend/build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Hardhat
+cache/
+artifacts/
+typechain-types/
+
+# PLONK Keys (large files)
+backend/keys/plonk/*.ptau
+backend/keys/plonk/*.zkey
+backend/keys/plonk/*.r1cs
+backend/keys/plonk/*.sym
+backend/keys/plonk/transfer_js/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test files (optional, keep if you want to commit tests)
+# backend/test-prover.js
+# backend/test-prover-new.js
+
+# Temporary files
+*.tmp
+*.temp
