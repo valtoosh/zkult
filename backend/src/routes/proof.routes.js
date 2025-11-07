@@ -102,33 +102,43 @@ router.post('/format-for-contract', async (req, res) => {
     console.log('📦 Last 200 chars:', calldata.substring(calldata.length - 200));
 
     // Convert to string if it's not already
-    const calldataStr = calldata.toString();
+    const calldataStr = calldata.toString().trim();
 
-    // Try multiple parsing strategies
+    // snarkjs.plonk.exportSolidityCallData returns: [proofArray][signalsArray]
+    // Note: NO comma between the arrays! Format is: ["0x...","0x..."]["0x...","0x..."]
     let proofBytes, publicSignalsArray;
 
-    // Strategy 1: Check if it's already JSON array format
-    if (calldataStr.startsWith('[')) {
-      console.log('🔍 Detected array format');
-      const parsed = JSON.parse(calldataStr);
-      if (Array.isArray(parsed) && parsed.length === 2) {
-        proofBytes = parsed[0];
-        publicSignalsArray = parsed[1];
-        console.log('✅ Parsed as array with 2 elements');
-      }
-    }
+    console.log('🔍 Parsing calldata format...');
 
-    // Strategy 2: Try comma separation
-    if (!proofBytes) {
-      console.log('🔍 Trying comma separation');
-      const parts = calldataStr.split(/,(?![^[\]]*\])/); // Split by comma not inside brackets
-      console.log('📊 Found', parts.length, 'parts');
+    try {
+      // Find the "][" separator
+      const separatorIndex = calldataStr.indexOf('][');
 
-      if (parts.length >= 2) {
-        proofBytes = parts[0].trim();
-        publicSignalsArray = JSON.parse(parts[parts.length - 1].trim());
-        console.log('✅ Parsed using comma separation');
+      if (separatorIndex === -1) {
+        throw new Error('Could not find ][ separator in calldata');
       }
+
+      // Parse proof array (everything up to and including the first ])
+      const proofArrayStr = calldataStr.substring(0, separatorIndex + 1);
+      const proofArray = JSON.parse(proofArrayStr);
+
+      // Parse signals array (everything from the second [ onwards)
+      const signalsArrayStr = calldataStr.substring(separatorIndex + 1);
+      publicSignalsArray = JSON.parse(signalsArrayStr);
+
+      // Join proof array elements into a single hex string
+      proofBytes = proofArray.join('').replace(/0x/g, ''); // Remove 0x prefixes
+      proofBytes = '0x' + proofBytes; // Add single 0x prefix
+
+      console.log('✅ Parsed successfully');
+      console.log('   Proof parts:', proofArray.length);
+      console.log('   Proof bytes:', proofBytes.substring(0, 20) + '...');
+      console.log('   Signals count:', publicSignalsArray.length);
+    } catch (parseError) {
+      console.error('❌ Failed to parse calldata:', parseError.message);
+      // Return error with debug info
+      proofBytes = null;
+      publicSignalsArray = null;
     }
 
     if (!proofBytes || !publicSignalsArray) {
