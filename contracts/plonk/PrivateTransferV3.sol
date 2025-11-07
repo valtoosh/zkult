@@ -8,7 +8,7 @@ interface IPlonkVerifier {
 /**
  * @title PrivateTransferV3
  * @notice Privacy-preserving asset transfer using PLONK zero-knowledge proofs
- * @dev Integrates with auto-generated PlonkVerifier contract
+ * @dev Integrates with auto-generated PlonkVerifier contract (Enhanced Circuit)
  */
 contract PrivateTransferV3 {
     // ============================================
@@ -101,54 +101,61 @@ contract PrivateTransferV3 {
     /**
      * @notice Execute a private transfer with PLONK zero-knowledge proof
      * @param proof PLONK proof bytes
-     * @param publicSignals Public signals [valid, newBalance, maxAmount, assetId]
+     * @param publicSignals Public signals from Enhanced Circuit (6 signals)
      * @dev Proof verifies transfer validity without revealing private details
+     * 
+     * Enhanced Circuit Public Signals (6 total):
+     * [0] valid (output)
+     * [1] newBalance (output)
+     * [2] newBalanceCommitment (output)
+     * [3] assetId (public input)
+     * [4] maxAmount (public input)
+     * [5] balanceCommitment (public input)
      */
     function privateTransfer(
-    bytes calldata proof,
-    uint256[] calldata publicSignals
-) external whenNotPaused {
-    require(publicSignals.length == 4, "Invalid public signals length");
-    
-    // ⚠️ CRITICAL: Order must match circuit output!
-    // Circuit: component main {public [maxAmount, assetId]} = PlonkTransferCheck();
-    // snarkjs outputs: [maxAmount, assetId, valid, newBalance]
-    
-    uint256 maxAmount = publicSignals[0];    // Public input
-    uint256 assetId = publicSignals[1];      // Public input
-    uint256 valid = publicSignals[2];        // Circuit output
-    uint256 newBalance = publicSignals[3];   // Circuit output
-    
-    // Validate asset is whitelisted
-    require(whitelistedAssets[assetId], "Asset not whitelisted");
-    
-    // Convert calldata to memory for verifier
-    bytes memory proofMemory = proof;
-    uint256[] memory publicSignalsMemory = new uint256[](publicSignals.length);
-    for (uint i = 0; i < publicSignals.length; i++) {
-        publicSignalsMemory[i] = publicSignals[i];
+        bytes calldata proof,
+        uint256[] calldata publicSignals
+    ) external whenNotPaused {
+        require(publicSignals.length == 6, "Invalid public signals length");
+        
+        // Parse public signals (Enhanced Circuit order)
+        uint256 valid = publicSignals[0];                // Circuit output
+        uint256 newBalance = publicSignals[1];           // Circuit output
+        uint256 newBalanceCommitment = publicSignals[2]; // Circuit output
+        uint256 assetId = publicSignals[3];              // Public input
+        uint256 maxAmount = publicSignals[4];            // Public input
+        uint256 balanceCommitment = publicSignals[5];    // Public input
+        
+        // Validate asset is whitelisted
+        require(whitelistedAssets[assetId], "Asset not whitelisted");
+        
+        // Convert calldata to memory for verifier
+        bytes memory proofMemory = proof;
+        uint256[] memory publicSignalsMemory = new uint256[](publicSignals.length);
+        for (uint i = 0; i < publicSignals.length; i++) {
+            publicSignalsMemory[i] = publicSignals[i];
+        }
+        
+        // Verify the PLONK proof
+        bool proofValid = verifier.verifyProof(proofMemory, publicSignalsMemory);
+        require(proofValid, "Invalid proof");
+        
+        // Check that circuit validated the transfer
+        require(valid == 1, "Circuit rejected transfer");
+        
+        // Update sender's balance (privacy-preserving)
+        balances[msg.sender] = newBalance;
+        
+        totalTransfers++;
+        
+        emit PrivateTransfer(
+            msg.sender,
+            assetId,
+            block.timestamp,
+            valid == 1,
+            newBalance
+        );
     }
-    
-    // Verify the PLONK proof
-    bool proofValid = verifier.verifyProof(proofMemory, publicSignalsMemory);
-    require(proofValid, "Invalid proof");
-    
-    // Check that circuit validated the transfer
-    require(valid == 1, "Circuit rejected transfer");
-    
-    // Update sender's balance (privacy-preserving)
-    balances[msg.sender] = newBalance;
-    
-    totalTransfers++;
-    
-    emit PrivateTransfer(
-        msg.sender,
-        assetId,
-        block.timestamp,
-        valid == 1,
-        newBalance
-    );
-}
     
     // ============================================
     // WITHDRAWAL FUNCTION

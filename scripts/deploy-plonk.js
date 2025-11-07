@@ -144,10 +144,6 @@ async function main() {
   console.log('\n🔗 Etherscan:');
   console.log('   Verifier:', deploymentInfo.verification.etherscan.replace(transferAddress, verifierAddress));
   console.log('   Transfer:', deploymentInfo.verification.etherscan);
-  console.log('\n📝 Next Steps:');
-  console.log('   1. Update frontend with contract addresses');
-  console.log('   2. Test deposit and transfer functions');
-  console.log('   3. Verify contracts on Etherscan (if not done automatically)');
   console.log('\n🚀 Ready to use zkUlt PLONK!\n');
 }
 

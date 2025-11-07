@@ -13,12 +13,15 @@ const TransactionForm = ({ onSuccess, onError }) => {
   const { account, signer, isConnected, chainId } = useWeb3();
   
   const [formData, setFormData] = useState({
-    senderBalance: '',
-    transferAmount: '',
-    recipientId: '',
-    assetId: '1998',
-    maxAmount: '12000'
-  });
+  senderBalance: '',
+  transferAmount: '',
+  recipientAddress: '', // Changed from recipientId
+  assetId: '1998',
+  maxAmount: '12000'
+});
+const isValidAddress = (address) => {
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
+};
   
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
@@ -33,98 +36,125 @@ const TransactionForm = ({ onSuccess, onError }) => {
   };
 
   const generateProof = async () => {
-    setStatus('🔵 Generating PLONK proof...');
+  setStatus('🔵 Generating PLONK proof...');
+  
+  // Prepare payload
+  const payload = {
+    senderBalance: parseInt(formData.senderBalance),
+    transferAmount: parseInt(formData.transferAmount),
+    recipientAddress: formData.recipientAddress,
+    assetId: parseInt(formData.assetId),
+    maxAmount: parseInt(formData.maxAmount)
+  };
+  
+  console.log('📤 Sending to backend:', payload);
+  
+  try {
+    const response = await axios.post('http://localhost:5001/api/proof/generate', payload);
     
-    try {
-      const response = await axios.post('http://localhost:5001/api/proof/generate', {
-        senderBalance: parseInt(formData.senderBalance),
-        transferAmount: parseInt(formData.transferAmount),
-        recipientId: parseInt(formData.recipientId),
-        assetId: parseInt(formData.assetId),
-        maxAmount: parseInt(formData.maxAmount)
-      });
-
-      console.log('✅ Proof generated:', response.data);
-      
-      if (!response.data.valid) {
-        throw new Error('Circuit rejected transfer (check balance/amount constraints)');
-      }
-
-      setProofData(response.data);
-      setStatus(`✅ Proof generated in ${response.data.generationTime}ms`);
-      
-      return response.data;
-    } catch (error) {
-      console.error('❌ Proof generation error:', error);
-      throw new Error(`Proof generation failed: ${error.response?.data?.message || error.message}`);
-    }
-  };
-
+    setProofData(response.data);
+    setStatus('✅ Proof generated successfully!');
+    return response.data;
+    
+  } catch (error) {
+    console.error('❌ Full error object:', error);
+    console.error('❌ Error response:', error.response);
+    console.error('❌ Error data:', error.response?.data);
+    
+    // Show backend error message if available
+    const backendError = error.response?.data?.message || error.response?.data?.error || error.message;
+    
+    setStatus(`❌ Proof generation failed: ${backendError}`);
+    throw new Error(`Proof generation failed: ${backendError}`);
+  }
+};
   const submitToContract = async (proofData) => {
-    setStatus('📝 Submitting to blockchain...');
+  setStatus('📝 Submitting to blockchain...');
 
-    try {
-      // Check network
-      const expectedChainId = parseInt(contractConfig.chainId);
-      const currentChainId = parseInt(chainId);
-      
-      if (currentChainId !== expectedChainId) {
-        throw new Error(`Wrong network! Please switch to Sepolia (Chain ID: ${expectedChainId})`);
-      }
-
-      // Initialize contract
-      const contract = new ethers.Contract(
-        contractConfig.transferAddress,
-        PrivateTransferV3Artifact.abi,
-        signer
-      );
-
-      console.log('📝 Contract initialized:', contractConfig.transferAddress);
-
-      // Format proof for Solidity
-      const proofBytes = ethers.hexlify(
-        ethers.toUtf8Bytes(JSON.stringify(proofData.proof))
-      );
-      
-      console.log('🔐 Proof formatted for contract');
-      console.log('   Public Signals:', proofData.publicSignals);
-
-      setStatus('⏳ Sending transaction...');
-
-      // Call privateTransfer function
-      const tx = await contract.privateTransfer(
-        proofBytes,
-        proofData.publicSignals
-      );
-
-      console.log('📤 Transaction sent:', tx.hash);
-      setStatus(`⏳ Mining transaction: ${tx.hash.slice(0, 10)}...`);
-      
-      const receipt = await tx.wait();
-
-      console.log('✅ Transaction mined:', receipt);
-      setStatus('✅ Transaction confirmed!');
-      
-      return {
-        transactionHash: receipt.hash,
-        blockNumber: receipt.blockNumber,
-        gasUsed: receipt.gasUsed.toString()
-      };
-
-    } catch (error) {
-      console.error('❌ Contract submission error:', error);
-      
-      // Parse error message
-      let errorMessage = error.message;
-      if (error.reason) {
-        errorMessage = error.reason;
-      } else if (error.data?.message) {
-        errorMessage = error.data.message;
-      }
-      
-      throw new Error(`Transaction failed: ${errorMessage}`);
+  try {
+    // Check network
+    const expectedChainId = parseInt(contractConfig.chainId);
+    const currentChainId = parseInt(chainId);
+    
+    if (currentChainId !== expectedChainId) {
+      throw new Error(`Wrong network! Please switch to Sepolia (Chain ID: ${expectedChainId})`);
     }
-  };
+
+    // Initialize contract
+    const contract = new ethers.Contract(
+      contractConfig.transferAddress,
+      PrivateTransferV3Artifact.abi,
+      signer
+    );
+
+    console.log('📝 Contract initialized:', contractConfig.transferAddress);
+
+    // STEP 1: Format proof using backend
+    setStatus('🔐 Formatting proof for contract...');
+    
+    const formatResponse = await axios.post('http://localhost:5001/api/proof/format-for-contract', {
+      proof: proofData.proof,
+      publicSignals: proofData.publicSignals
+    });
+
+    const { proofBytes, publicSignals } = formatResponse.data;
+    
+    console.log('🔐 Proof formatted by backend');
+    console.log('   Proof:', proofBytes.substring(0, 50) + '...');
+    console.log('   Public Signals:', publicSignals);
+
+    setStatus('⏳ Estimating gas...');
+    
+    // STEP 2: Estimate gas
+    try {
+      const gasEstimate = await contract.privateTransfer.estimateGas(
+        proofBytes,
+        publicSignals
+      );
+      console.log('⛽ Gas estimate:', gasEstimate.toString());
+    } catch (gasError) {
+      console.error('❌ Gas estimation failed:', gasError);
+      throw new Error(`Contract would revert. Check proof and public signals.`);
+    }
+
+    setStatus('⏳ Sending transaction...');
+
+    // STEP 3: Send transaction
+    const tx = await contract.privateTransfer(
+      proofBytes,
+      publicSignals,
+      {
+        gasLimit: 500000
+      }
+    );
+
+    console.log('📤 Transaction sent:', tx.hash);
+    setStatus(`⏳ Mining: ${tx.hash.slice(0, 10)}...`);
+    
+    const receipt = await tx.wait();
+
+    console.log('✅ Transaction mined:', receipt);
+    setStatus('✅ Transaction confirmed!');
+    
+    return {
+      transactionHash: receipt.hash,
+      blockNumber: receipt.blockNumber,
+      gasUsed: receipt.gasUsed.toString()
+    };
+
+  } catch (error) {
+    console.error('❌ Contract submission error:', error);
+    
+    let errorMessage = error.message;
+    if (error.reason) {
+      errorMessage = error.reason;
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    }
+    
+    throw new Error(`Transaction failed: ${errorMessage}`);
+  }
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -159,7 +189,7 @@ const TransactionForm = ({ onSuccess, onError }) => {
       setFormData({
         senderBalance: '',
         transferAmount: '',
-        recipientId: '',
+        recipientAddress: '',
         assetId: '1998',
         maxAmount: '12000'
       });
@@ -224,23 +254,28 @@ const TransactionForm = ({ onSuccess, onError }) => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="recipientId">
-            Recipient ID
-            <span className="label-hint">(Private)</span>
-          </label>
-          <input
-            type="number"
-            id="recipientId"
-            name="recipientId"
-            value={formData.recipientId}
-            onChange={handleChange}
-            placeholder="e.g., 123456"
-            required
-            disabled={loading}
-            min="1"
-          />
-          <span className="input-hint">Recipient identifier (hidden on-chain)</span>
-        </div>
+          <label htmlFor="recipientAddress">
+              Recipient Address
+            <span className="label-hint">(Private - Ethereum Address)</span>
+            </label>
+  <input
+    type="text"
+    id="recipientAddress"
+    name="recipientAddress"
+    value={formData.recipientAddress}
+    onChange={handleChange}
+    placeholder="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+    required
+    pattern="^0x[a-fA-F0-9]{40}$"
+    title="Must be a valid Ethereum address (0x followed by 40 hex characters)"
+  />
+  <span className="input-hint">
+    Ethereum address of recipient (hidden in zero-knowledge proof)
+  </span>
+  {formData.recipientAddress && !isValidAddress(formData.recipientAddress) && (
+    <span className="error-hint">⚠️ Invalid Ethereum address format</span>
+  )}
+</div>
 
         <div className="form-row">
           <div className="form-group">
