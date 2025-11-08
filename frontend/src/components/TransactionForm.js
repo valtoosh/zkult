@@ -98,9 +98,10 @@ const isValidAddress = (address) => {
     });
 
     const { proofBytes, publicSignals } = formatResponse.data;
-    
+
     console.log('🔐 Proof formatted by backend');
-    console.log('   Proof:', proofBytes.substring(0, 50) + '...');
+    console.log('   Proof array length:', Array.isArray(proofBytes) ? proofBytes.length : 'not array');
+    console.log('   Proof:', proofBytes);
     console.log('   Public Signals:', publicSignals);
 
     setStatus('⏳ Estimating gas...');
@@ -134,13 +135,24 @@ const isValidAddress = (address) => {
     const receipt = await tx.wait();
 
     console.log('✅ Transaction mined:', receipt);
+    console.log('✅ tx.hash:', tx.hash);
+    console.log('✅ receipt.blockNumber:', receipt.blockNumber);
+    console.log('✅ receipt.gasUsed:', receipt.gasUsed);
+
     setStatus('✅ Transaction confirmed!');
-    
-    return {
-      transactionHash: receipt.hash,
-      blockNumber: receipt.blockNumber,
-      gasUsed: receipt.gasUsed.toString()
-    };
+
+    try {
+      const result = {
+        transactionHash: tx.hash,
+        blockNumber: receipt.blockNumber,
+        gasUsed: receipt.gasUsed.toString()
+      };
+      console.log('✅ Result object created:', result);
+      return result;
+    } catch (err) {
+      console.error('❌ Error creating result object:', err);
+      throw err;
+    }
 
   } catch (error) {
     console.error('❌ Contract submission error:', error);
@@ -169,21 +181,38 @@ const isValidAddress = (address) => {
 
     try {
       // Step 1: Generate proof
+      console.log('📝 Step 1: Generating proof...');
       const proof = await generateProof();
-      
+      console.log('✅ Step 1 complete: Proof generated');
+
       // Step 2: Submit to contract
+      console.log('📝 Step 2: Submitting to contract...');
       const result = await submitToContract(proof);
-      
+      console.log('✅ Step 2 complete: Contract submission successful');
+      console.log('📊 Result:', result);
+
       setStatus('');
-      onSuccess?.({
-        message: 'Private transfer completed successfully! 🎉',
-        transactionHash: result.transactionHash,
+      console.log('📝 Step 3: Calling onSuccess callback...');
+
+      const successData = {
+        success: true,
+        proofValid: true,
+        onChain: true,
+        amount: formData.transferAmount,
+        recipient: formData.recipientAddress,
+        assetId: formData.assetId,
+        time: `${proof.generationTime}ms`,
+        privacy: true,
+        txHash: result.transactionHash,
         blockNumber: result.blockNumber,
         gasUsed: result.gasUsed,
-        proofTime: proof.generationTime,
-        newBalance: proof.newBalance,
         etherscanUrl: `https://sepolia.etherscan.io/tx/${result.transactionHash}`
-      });
+      };
+
+      console.log('📊 Success data:', successData);
+
+      onSuccess?.(successData);
+      console.log('✅ Step 3 complete: onSuccess called');
 
       // Reset form
       setFormData({

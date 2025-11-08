@@ -126,13 +126,13 @@ router.post('/format-for-contract', async (req, res) => {
       const signalsArrayStr = calldataStr.substring(separatorIndex + 1);
       publicSignalsArray = JSON.parse(signalsArrayStr);
 
-      // Join proof array elements into a single hex string
-      proofBytes = proofArray.join('').replace(/0x/g, ''); // Remove 0x prefixes
-      proofBytes = '0x' + proofBytes; // Add single 0x prefix
+      // Keep proof as array for PlonkVerifier contract
+      // PlonkVerifier expects uint256[24] not bytes
+      proofBytes = proofArray; // Keep as array
 
       console.log('✅ Parsed successfully');
       console.log('   Proof parts:', proofArray.length);
-      console.log('   Proof bytes:', proofBytes.substring(0, 20) + '...');
+      console.log('   Proof array:', proofArray);
       console.log('   Signals count:', publicSignalsArray.length);
     } catch (parseError) {
       console.error('❌ Failed to parse calldata:', parseError.message);

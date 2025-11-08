@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 interface IPlonkVerifier {
-    function verifyProof(bytes memory proof, uint256[] memory pubSignals) external view returns (bool);
+    function verifyProof(uint256[24] calldata proof, uint256[6] calldata pubSignals) external view returns (bool);
 }
 
 /**
@@ -113,11 +113,9 @@ contract PrivateTransferV3 {
      * [5] balanceCommitment (public input)
      */
     function privateTransfer(
-        bytes calldata proof,
-        uint256[] calldata publicSignals
+        uint256[24] calldata proof,
+        uint256[6] calldata publicSignals
     ) external whenNotPaused {
-        require(publicSignals.length == 6, "Invalid public signals length");
-        
         // Parse public signals (Enhanced Circuit order)
         uint256 valid = publicSignals[0];                // Circuit output
         uint256 newBalance = publicSignals[1];           // Circuit output
@@ -125,19 +123,12 @@ contract PrivateTransferV3 {
         uint256 assetId = publicSignals[3];              // Public input
         uint256 maxAmount = publicSignals[4];            // Public input
         uint256 balanceCommitment = publicSignals[5];    // Public input
-        
+
         // Validate asset is whitelisted
         require(whitelistedAssets[assetId], "Asset not whitelisted");
-        
-        // Convert calldata to memory for verifier
-        bytes memory proofMemory = proof;
-        uint256[] memory publicSignalsMemory = new uint256[](publicSignals.length);
-        for (uint i = 0; i < publicSignals.length; i++) {
-            publicSignalsMemory[i] = publicSignals[i];
-        }
-        
+
         // Verify the PLONK proof
-        bool proofValid = verifier.verifyProof(proofMemory, publicSignalsMemory);
+        bool proofValid = verifier.verifyProof(proof, publicSignals);
         require(proofValid, "Invalid proof");
         
         // Check that circuit validated the transfer

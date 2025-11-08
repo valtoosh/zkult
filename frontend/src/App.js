@@ -55,9 +55,9 @@ function App() {
 
             {/* Transaction Result */}
             {txResult && (
-              <TransactionResult 
-                result={txResult} 
-                onClose={() => setTxResult(null)} 
+              <TransactionResult
+                result={txResult}
+                onReset={() => setTxResult(null)}
               />
             )}
           </div>
