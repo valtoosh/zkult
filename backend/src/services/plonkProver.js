@@ -100,17 +100,19 @@ class PlonkProverService {
 
       console.log(`\n✅ PLONK proof generated in ${duration}ms`);
       console.log('═══════════════════════════════════════');
-      console.log('Public Signals:');
+      console.log('Public Signals (7 total - Phase 3):');
       console.log('  [0] valid:', publicSignals[0]);
       console.log('  [1] newBalance:', publicSignals[1]);
       console.log('  [2] newBalanceCommitment:', publicSignals[2]);
-      console.log('  [3] assetId:', publicSignals[3]);
-      console.log('  [4] maxAmount:', publicSignals[4]);
-      console.log('  [5] balanceCommitment:', publicSignals[5]);
+      console.log('  [3] recipientHash (NEW):', publicSignals[3]);
+      console.log('  [4] assetId:', publicSignals[4]);
+      console.log('  [5] maxAmount:', publicSignals[5]);
+      console.log('  [6] balanceCommitment:', publicSignals[6]);
       console.log('═══════════════════════════════════════\n');
 
       const valid = publicSignals[0];
       const newBalance = publicSignals[1];
+      const recipientHash = publicSignals[3];
 
       return {
         proof,
@@ -119,6 +121,7 @@ class PlonkProverService {
         generationTime: duration,
         valid: valid === '1',
         newBalance: newBalance,
+        recipientHash: recipientHash, // NEW: Include for claiming
         recipientAddress: input.recipientAddress,
         stats: { ...this.stats }
       };

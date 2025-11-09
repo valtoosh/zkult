@@ -200,6 +200,7 @@ const isValidAddress = (address) => {
         onChain: true,
         amount: formData.transferAmount,
         recipient: formData.recipientAddress,
+        recipientHash: proof.recipientHash, // NEW: For Phase 3 claiming
         assetId: formData.assetId,
         time: `${proof.generationTime}ms`,
         privacy: true,
@@ -260,7 +261,9 @@ const isValidAddress = (address) => {
             disabled={loading}
             min="1"
           />
-          <span className="input-hint">Your current balance (hidden on-chain)</span>
+          <span className="input-hint">
+            ⚠️ Must match your deposited balance on the contract. Check the "Manage Balance" section above if unsure.
+          </span>
         </div>
 
         <div className="form-group">
@@ -368,6 +371,10 @@ const isValidAddress = (address) => {
               <div className="proof-stat">
                 <span className="stat-label">Circuit Valid:</span>
                 <span className="stat-value">{proofData.valid ? '✅ Yes' : '❌ No'}</span>
+              </div>
+              <div className="proof-stat">
+                <span className="stat-label">Recipient Hash:</span>
+                <span className="stat-value hash-display">{proofData.recipientHash?.slice(0, 20)}...</span>
               </div>
             </div>
           </div>

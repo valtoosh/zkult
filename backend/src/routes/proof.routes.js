@@ -59,6 +59,7 @@ router.post('/generate', async (req, res) => {
       generationTime: result.generationTime,
       valid: result.valid,
       newBalance: result.newBalance,
+      recipientHash: result.recipientHash, // NEW: For claiming (Phase 3)
       recipientAddress: result.recipientAddress, // Include recipient in response
       stats: result.stats
     });

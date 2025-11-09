@@ -16,25 +16,49 @@ function TransactionResult({ result, onReset }) {
           <div className="ai-explanation">
             <h3>🤖 AI Explanation</h3>
             <p>
-              Your transfer of {result.amount} units to {result.recipient.slice(0, 10)}... was
-              successfully verified using zero-knowledge proofs. Your actual balance and transfer
-              details remain completely private. The proof was generated in {result.time}.
+              Your transfer of {result.amount} units was successfully verified using zero-knowledge
+              proofs. Your actual balance and transfer details remain completely private. The proof
+              was generated in {result.time}.
             </p>
             {result.onChain && (
               <p className="blockchain-success">
                 ⛓️ Transaction has been confirmed on Sepolia blockchain!
               </p>
             )}
+            {result.recipientHash && (
+              <div className="recipient-hash-notice">
+                <strong>🔑 Important:</strong> Share the Recipient Hash below with the recipient
+                so they can claim their funds. The recipient address remains completely hidden
+                on-chain for maximum privacy.
+              </div>
+            )}
           </div>
 
           <div className="details-section">
             <h3>📋 Transaction Details</h3>
+            {result.recipientHash && (
+              <div className="detail-row highlight recipient-hash-row">
+                <span>🔑 Recipient Hash (Share with recipient):</span>
+                <div className="hash-container">
+                  <span className="hash-value">{result.recipientHash}</span>
+                  <button
+                    className="copy-button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(result.recipientHash);
+                      alert('Recipient hash copied to clipboard!');
+                    }}
+                  >
+                    📋 Copy
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="detail-row">
               <span>Amount:</span>
               <span>{result.amount} units</span>
             </div>
             <div className="detail-row">
-              <span>Recipient:</span>
+              <span>Recipient (Private):</span>
               <span className="address">{result.recipient}</span>
             </div>
             <div className="detail-row">

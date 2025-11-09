@@ -1,6 +1,6 @@
 {
-  "verifierAddress": "0x0643f8BC875F92D004778B616eFD7F7E76D076F3",
-  "transferAddress": "0x67B7Cc5Feb5b306373d7F1220Ed7920D1458415e",
+  "verifierAddress": "0x63324aAF9233F5AeAC5347ee290389389B7A59ec",
+  "transferAddress": "0x9Db2dd50b657CBa2dccE86F6834b5277f576cBFD",
   "network": "sepolia",
   "chainId": "11155111"
 }

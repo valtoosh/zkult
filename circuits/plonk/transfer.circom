@@ -5,13 +5,22 @@ include "circomlib/circuits/bitify.circom";
 include "circomlib/circuits/poseidon.circom";
 
 /*
- * zkUlt PLONK Enhanced Transfer Circuit
- * Includes commitment scheme for future anonymity
- * 
+ * zkUlt PLONK Enhanced Transfer Circuit with Hash-Based Claiming
+ * Includes commitment scheme for recipient privacy
+ *
  * This version adds:
  * - Balance commitment for privacy
- * - Nullifier concept (prepared for Phase 2)
+ * - Recipient hash for anonymous claiming (Phase 3)
  * - Poseidon hash for efficiency
+ *
+ * Public Signals Order (7 total):
+ * [0] valid - transfer validation result
+ * [1] newBalance - sender's balance after transfer
+ * [2] newBalanceCommitment - cryptographic commitment to new balance
+ * [3] recipientHash - hash for recipient to claim funds
+ * [4] assetId - public asset identifier
+ * [5] maxAmount - public maximum allowed amount
+ * [6] balanceCommitment - cryptographic commitment to original balance
  */
 
 template PlonkTransferCheckEnhanced() {
@@ -33,9 +42,10 @@ template PlonkTransferCheckEnhanced() {
     // ============================================
     // OUTPUTS
     // ============================================
-    signal output valid;               
-    signal output newBalance;          
+    signal output valid;
+    signal output newBalance;
     signal output newBalanceCommitment; // NEW: Commitment to new balance
+    signal output recipientHash;        // NEW: Hash for recipient claiming
     
     // ============================================
     // COMMITMENT VERIFICATION
@@ -83,7 +93,14 @@ template PlonkTransferCheckEnhanced() {
     newCommitment.inputs[0] <== newBalance;
     newCommitment.inputs[1] <== salt; // Same salt for simplicity
     newBalanceCommitment <== newCommitment.out;
-    
+
+    // Create recipient hash for claiming
+    // Hash the recipient address with transfer amount for uniqueness
+    component recipientHasher = Poseidon(2);
+    recipientHasher.inputs[0] <== recipientAddressHash;
+    recipientHasher.inputs[1] <== transferAmount;
+    recipientHash <== recipientHasher.out;
+
     // Combine all checks
     signal intermediate1;
     signal intermediate2;

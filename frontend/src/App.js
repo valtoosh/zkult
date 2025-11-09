@@ -1,19 +1,22 @@
 // frontend/src/App.js
 import React, { useState } from 'react';
-import { Web3Provider } from './contexts/Web3Context';
+import { Web3Provider, useWeb3 } from './contexts/Web3Context';
 import WalletConnect from './components/WalletConnect';
 import TransactionForm from './components/TransactionForm';
+import ClaimTransfer from './components/ClaimTransfer';
+import DepositPanel from './components/Transfer/DepositPanel';
 import StatusPanel from './components/StatusPanel';
 import TransactionResult from './components/Common/TransactionResult';
 import './App.css';
 
-function App() {
+function AppContent() {
   const [txResult, setTxResult] = useState(null);
   const [proofSystem] = useState('plonk'); // PLONK-only for now
+  const [activeTab, setActiveTab] = useState('send'); // 'send' or 'claim'
+  const { account, signer } = useWeb3();
 
   return (
-    <Web3Provider>
-      <div className="App">
+    <div className="App">
         {/* Header */}
         <header className="app-header">
           <div className="logo-section">
@@ -44,13 +47,45 @@ function App() {
             {/* Status Panel */}
             <StatusPanel proofSystem={proofSystem} />
 
-            {/* Transaction Form */}
-            <div className="transfer-section">
-              <TransactionForm 
-                proofSystem={proofSystem}
-                onSuccess={setTxResult}
-                onError={(err) => setTxResult({ error: err })}
+            {/* Tab Navigation */}
+            <div className="tab-navigation">
+              <button
+                className={`tab-button ${activeTab === 'send' ? 'active' : ''}`}
+                onClick={() => setActiveTab('send')}
+              >
+                📤 Send Transfer
+              </button>
+              <button
+                className={`tab-button ${activeTab === 'claim' ? 'active' : ''}`}
+                onClick={() => setActiveTab('claim')}
+              >
+                🎁 Claim Transfer
+              </button>
+            </div>
+
+            {/* Deposit Panel (only on Send tab) */}
+            {activeTab === 'send' && (
+              <DepositPanel
+                account={account}
+                signer={signer}
+                onDepositSuccess={() => console.log('Deposit successful')}
               />
+            )}
+
+            {/* Transaction Form or Claim Form */}
+            <div className="transfer-section">
+              {activeTab === 'send' ? (
+                <TransactionForm
+                  proofSystem={proofSystem}
+                  onSuccess={setTxResult}
+                  onError={(err) => setTxResult({ error: err })}
+                />
+              ) : (
+                <ClaimTransfer
+                  onSuccess={setTxResult}
+                  onError={(err) => setTxResult({ error: err })}
+                />
+              )}
             </div>
 
             {/* Transaction Result */}
@@ -81,6 +116,13 @@ function App() {
           </p>
         </footer>
       </div>
+  );
+}
+
+function App() {
+  return (
+    <Web3Provider>
+      <AppContent />
     </Web3Provider>
   );
 }

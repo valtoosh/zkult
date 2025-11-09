@@ -115,12 +115,56 @@ main {
   }
 }
 
+/* Tab Navigation */
+.tab-navigation {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 0 0 0 0;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 14px 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, #3861fb 0%, #5078fc 100%);
+  border-color: #3861fb;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(56, 97, 251, 0.3);
+}
+
 @media (max-width: 600px) {
   .App {
     padding: 10px;
   }
-  
+
   .App-header h1 {
     font-size: 1.5rem;
+  }
+
+  .tab-navigation {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tab-button {
+    padding: 12px 20px;
+    font-size: 14px;
   }
 }
