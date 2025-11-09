@@ -131,12 +131,17 @@ const ClaimTransfer = ({ onSuccess, onError }) => {
       // Call success callback
       const result = {
         success: true,
+        proofValid: true,
         amount: pendingTransferInfo.amount,
         assetId: pendingTransferInfo.assetId,
+        recipient: account,
         txHash: tx.hash,
         blockNumber: receipt.blockNumber,
         gasUsed: receipt.gasUsed.toString(),
         etherscanUrl: `https://sepolia.etherscan.io/tx/${tx.hash}`,
+        onChain: true,
+        time: 'N/A',
+        privacy: true,
         claimed: true
       };
 

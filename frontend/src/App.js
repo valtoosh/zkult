@@ -5,6 +5,7 @@ import WalletConnect from './components/WalletConnect';
 import TransactionForm from './components/TransactionForm';
 import ClaimTransfer from './components/ClaimTransfer';
 import DepositPanel from './components/Transfer/DepositPanel';
+import WithdrawalPanel from './components/Transfer/WithdrawalPanel';
 import StatusPanel from './components/StatusPanel';
 import TransactionResult from './components/Common/TransactionResult';
 import './App.css';
@@ -61,6 +62,12 @@ function AppContent() {
               >
                 🎁 Claim Transfer
               </button>
+              <button
+                className={`tab-button ${activeTab === 'withdraw' ? 'active' : ''}`}
+                onClick={() => setActiveTab('withdraw')}
+              >
+                💰 Withdraw
+              </button>
             </div>
 
             {/* Deposit Panel (only on Send tab) */}
@@ -72,7 +79,7 @@ function AppContent() {
               />
             )}
 
-            {/* Transaction Form or Claim Form */}
+            {/* Transaction Form, Claim Form, or Withdraw Panel */}
             <div className="transfer-section">
               {activeTab === 'send' ? (
                 <TransactionForm
@@ -80,10 +87,16 @@ function AppContent() {
                   onSuccess={setTxResult}
                   onError={(err) => setTxResult({ error: err })}
                 />
-              ) : (
+              ) : activeTab === 'claim' ? (
                 <ClaimTransfer
                   onSuccess={setTxResult}
                   onError={(err) => setTxResult({ error: err })}
+                />
+              ) : (
+                <WithdrawalPanel
+                  account={account}
+                  signer={signer}
+                  onWithdrawSuccess={(result) => setTxResult({ success: true, ...result })}
                 />
               )}
             </div>
