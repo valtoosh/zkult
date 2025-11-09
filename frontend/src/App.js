@@ -8,6 +8,7 @@ import DepositPanel from './components/Transfer/DepositPanel';
 import WithdrawalPanel from './components/Transfer/WithdrawalPanel';
 import StatusPanel from './components/StatusPanel';
 import TransactionResult from './components/Common/TransactionResult';
+import Logo from './components/Common/Logo';
 import './App.css';
 
 function AppContent() {
@@ -21,13 +22,18 @@ function AppContent() {
         {/* Header */}
         <header className="app-header">
           <div className="logo-section">
-            <h1>🔐 zkUlt</h1>
-            <span className="subtitle">Privacy-Preserving Asset Transfer</span>
+            <Logo size={50} />
+            <div className="brand-text">
+              <h1>zkUlt</h1>
+              <span className="subtitle">Privacy-Preserving Transfers</span>
+            </div>
           </div>
-          <div className="proof-badge">
-            <span className="badge plonk">⚡ PLONK</span>
+          <div className="header-right">
+            <div className="proof-badge">
+              <span className="badge plonk">PLONK</span>
+            </div>
+            <WalletConnect />
           </div>
-          <WalletConnect />
         </header>
 
         {/* Main Content */}

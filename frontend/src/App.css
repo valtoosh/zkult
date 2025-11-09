@@ -6,33 +6,66 @@
 
 .App {
   min-height: 100vh;
-  background: #24272a;
+  background: linear-gradient(135deg, #1a1d23 0%, #24272a 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  padding: 20px;
+  padding: 0;
 }
 
-.App-header {
-  text-align: center;
-  color: white;
-  padding: 30px 20px;
-  max-width: 480px;
-  margin: 0 auto 20px;
-  background: #1c1c1c;
-  border-radius: 16px;
+/* Header Styles */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  background: linear-gradient(135deg, #181b20 0%, #1e2329 100%);
+  border-bottom: 1px solid rgba(240, 185, 11, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.App-header h1 {
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: white;
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-.App-header p {
-  font-size: 0.95rem;
-  color: #9ca3af;
+.brand-text h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+}
+
+.brand-text .subtitle {
+  display: block;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
   font-weight: 400;
+  margin-top: 2px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.proof-badge {
+  display: flex;
+  align-items: center;
+}
+
+.badge.plonk {
+  background: linear-gradient(135deg, #3861fb 0%, #5078fc 100%);
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(56, 97, 251, 0.3);
+  box-shadow: 0 2px 8px rgba(56, 97, 251, 0.2);
 }
 
 .connect-button {
@@ -68,10 +101,82 @@
   color: #d1d5db;
 }
 
-main {
-  max-width: 480px;
+/* Main Content */
+.app-main {
+  padding: 40px 20px;
+}
+
+.container {
+  max-width: 900px;
   margin: 0 auto;
-  padding-bottom: 40px;
+}
+
+/* Info Banner */
+.info-banner {
+  display: flex;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(56, 97, 251, 0.1) 0%, rgba(80, 120, 252, 0.05) 100%);
+  border: 1px solid rgba(56, 97, 251, 0.2);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 32px;
+  animation: slideUp 0.3s ease;
+}
+
+.banner-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.banner-content h3 {
+  color: #3861fb;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
+
+.banner-content p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.transfer-section {
+  margin-bottom: 32px;
+}
+
+/* Footer */
+.app-footer {
+  background: linear-gradient(135deg, #181b20 0%, #1e2329 100%);
+  border-top: 1px solid rgba(240, 185, 11, 0.1);
+  padding: 32px 40px;
+  text-align: center;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-bottom: 16px;
+}
+
+.footer-links a {
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+  color: #f0b90b;
+}
+
+.footer-text {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  margin: 0;
 }
 
 .loading {
@@ -149,13 +254,42 @@ main {
   box-shadow: 0 4px 12px rgba(56, 97, 251, 0.3);
 }
 
-@media (max-width: 600px) {
-  .App {
-    padding: 10px;
+@media (max-width: 768px) {
+  .app-header {
+    padding: 16px 20px;
+    flex-direction: column;
+    gap: 16px;
   }
 
-  .App-header h1 {
-    font-size: 1.5rem;
+  .logo-section {
+    width: 100%;
+  }
+
+  .brand-text h1 {
+    font-size: 24px;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .app-main {
+    padding: 24px 16px;
+  }
+
+  .info-banner {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .banner-icon {
+    font-size: 24px;
+  }
+
+  .footer-links {
+    flex-direction: column;
+    gap: 16px;
   }
 
   .tab-navigation {
