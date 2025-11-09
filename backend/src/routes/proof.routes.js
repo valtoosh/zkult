@@ -3,12 +3,14 @@ const snarkjs = require('snarkjs');
 const express = require('express');
 const router = express.Router();
 const plonkProver = require('../services/plonkProver');
+const { proofGenerationLimiter } = require('../middleware/rateLimiter'); // PHASE 4: Rate limiting
 
 /**
  * POST /api/proof/generate
  * Generate a PLONK proof for transfer
+ * PHASE 4: Rate limited to 10 requests/minute per IP
  */
-router.post('/generate', async (req, res) => {
+router.post('/generate', proofGenerationLimiter, async (req, res) => {
   try {
     const { senderBalance, transferAmount, recipientAddress, assetId, maxAmount, salt } = req.body;
 
@@ -27,7 +29,7 @@ router.post('/generate', async (req, res) => {
       recipientAddress: String(recipientAddress), // FIXED: Changed from recipientId
       assetId: Number(assetId),
       maxAmount: Number(maxAmount),
-      salt: salt || '12345' // Optional salt
+      salt: salt // PHASE 4: Optional salt (secure random generated if not provided)
     };
 
     console.log('\n📥 Received proof generation request');

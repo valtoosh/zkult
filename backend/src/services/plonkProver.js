@@ -3,6 +3,7 @@ const ethers = require('ethers');
 const snarkjs = require('snarkjs');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto'); // PHASE 4: For secure salt generation
 const { buildPoseidon } = require('circomlibjs');
 
 class PlonkProverService {
@@ -37,7 +38,7 @@ class PlonkProverService {
       }
 
       this.vKey = JSON.parse(fs.readFileSync(this.vKeyPath, 'utf8'));
-      
+
       // Initialize Poseidon for commitment calculations
       this.poseidon = await buildPoseidon();
 
@@ -49,6 +50,19 @@ class PlonkProverService {
       console.error('❌ Failed to initialize PLONK Prover:', error.message);
       throw error;
     }
+  }
+
+  /**
+   * PHASE 4: Generate cryptographically secure random salt
+   * @returns {string} Random salt as decimal string
+   */
+  generateSecureSalt() {
+    // Generate 32 random bytes and convert to BigInt
+    const randomBytes = crypto.randomBytes(32);
+    const randomBigInt = BigInt('0x' + randomBytes.toString('hex'));
+    // Ensure it fits within the field size (less than ~2^254)
+    const fieldModulus = BigInt('21888242871839275222246405745257275088548364400416034343698204186575808495617');
+    return (randomBigInt % fieldModulus).toString();
   }
 
   async generateProof(input) {
@@ -70,18 +84,22 @@ class PlonkProverService {
       this.validateInput(input);
 
       const recipientAddressHash = this.addressToHash(input.recipientAddress);
-      
+
+      // PHASE 4: Generate secure random salt if not provided
+      const salt = input.salt || this.generateSecureSalt();
+
       console.log('\n🔐 Privacy Layer:');
       console.log('   Recipient Address Hash:', recipientAddressHash.slice(0, 20) + '...');
+      console.log('   Salt (first 20 chars):', salt.slice(0, 20) + '...');
 
       const circuitInput = {
         senderBalance: input.senderBalance,
         transferAmount: input.transferAmount,
         recipientAddressHash: recipientAddressHash,
-        salt: input.salt || '12345',
+        salt: salt,
         assetId: input.assetId,
         maxAmount: input.maxAmount,
-        balanceCommitment: input.balanceCommitment || await this.calculateCommitment(input.senderBalance, input.salt || '12345')
+        balanceCommitment: input.balanceCommitment || await this.calculateCommitment(input.senderBalance, salt)
       };
 
       console.log('\n⚙️  Generating proof...');
@@ -100,19 +118,23 @@ class PlonkProverService {
 
       console.log(`\n✅ PLONK proof generated in ${duration}ms`);
       console.log('═══════════════════════════════════════');
-      console.log('Public Signals (7 total - Phase 3):');
-      console.log('  [0] valid:', publicSignals[0]);
-      console.log('  [1] newBalance:', publicSignals[1]);
-      console.log('  [2] newBalanceCommitment:', publicSignals[2]);
-      console.log('  [3] recipientHash (NEW):', publicSignals[3]);
-      console.log('  [4] assetId:', publicSignals[4]);
-      console.log('  [5] maxAmount:', publicSignals[5]);
-      console.log('  [6] balanceCommitment:', publicSignals[6]);
+      console.log('Public Signals (8 total - Phase 4):');
+      console.log('  Outputs (0-4):');
+      console.log('    [0] valid:', publicSignals[0]);
+      console.log('    [1] newBalance:', publicSignals[1]);
+      console.log('    [2] newBalanceCommitment:', publicSignals[2]);
+      console.log('    [3] recipientHash:', publicSignals[3]);
+      console.log('    [4] nullifier (PHASE 4):', publicSignals[4]);
+      console.log('  Public Inputs (5-7):');
+      console.log('    [5] assetId:', publicSignals[5]);
+      console.log('    [6] maxAmount:', publicSignals[6]);
+      console.log('    [7] balanceCommitment:', publicSignals[7]);
       console.log('═══════════════════════════════════════\n');
 
       const valid = publicSignals[0];
       const newBalance = publicSignals[1];
       const recipientHash = publicSignals[3];
+      const nullifier = publicSignals[4]; // PHASE 4: Nullifier for replay protection
 
       return {
         proof,
@@ -121,7 +143,9 @@ class PlonkProverService {
         generationTime: duration,
         valid: valid === '1',
         newBalance: newBalance,
-        recipientHash: recipientHash, // NEW: Include for claiming
+        recipientHash: recipientHash,
+        nullifier: nullifier, // PHASE 4: Include nullifier
+        salt: salt, // PHASE 4: Return salt for frontend storage
         recipientAddress: input.recipientAddress,
         stats: { ...this.stats }
       };

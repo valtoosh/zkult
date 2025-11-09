@@ -1,13 +1,24 @@
 // backend/src/server.js
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet'); // PHASE 4: HTTP security headers
 require('dotenv').config();
 
 const proofRoutes = require('./routes/proof.routes');
+const { generalLimiter } = require('./middleware/rateLimiter'); // PHASE 4: Rate limiting
 
 const app = express();
 
-// Middleware
+// PHASE 4: Security middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for API
+  crossOriginEmbedderPolicy: false
+}));
+
+// General rate limiting for all endpoints
+app.use('/api/', generalLimiter);
+
+// CORS middleware
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true

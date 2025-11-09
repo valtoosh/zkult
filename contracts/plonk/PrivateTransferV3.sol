@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 interface IPlonkVerifier {
-    function verifyProof(uint256[24] calldata proof, uint256[7] calldata pubSignals) external view returns (bool);
+    function verifyProof(uint256[24] calldata proof, uint256[8] calldata pubSignals) external view returns (bool);
 }
 
 /**
@@ -10,6 +10,7 @@ interface IPlonkVerifier {
  * @notice Privacy-preserving asset transfer using PLONK zero-knowledge proofs with hash-based claiming
  * @dev Integrates with auto-generated PlonkVerifier contract (Enhanced Circuit)
  * Phase 3: Recipient privacy via hash-based claiming
+ * Phase 4: Nullifier system for replay attack prevention
  */
 contract PrivateTransferV3 {
     // ============================================
@@ -32,6 +33,7 @@ contract PrivateTransferV3 {
     mapping(address => uint256) public balances;
     mapping(uint256 => bool) public whitelistedAssets;
     mapping(uint256 => PendingTransfer) public pendingTransfers; // recipientHash => transfer details
+    mapping(uint256 => bool) public nullifiers; // PHASE 4: Track used nullifiers to prevent double-spending
 
     uint256 public totalDeposited;
     uint256 public totalTransfers;
@@ -53,6 +55,12 @@ contract PrivateTransferV3 {
         uint256 timestamp,
         bool valid,
         uint256 newBalance
+    );
+
+    event NullifierUsed(
+        uint256 indexed nullifier,
+        address indexed sender,
+        uint256 timestamp
     );
 
     event TransferClaimed(
@@ -123,34 +131,41 @@ contract PrivateTransferV3 {
     /**
      * @notice Execute a private transfer with PLONK zero-knowledge proof
      * @param proof PLONK proof bytes
-     * @param publicSignals Public signals from Enhanced Circuit (7 signals)
+     * @param publicSignals Public signals from Enhanced Circuit (8 signals - Phase 4)
      * @dev Proof verifies transfer validity without revealing private details
      * Creates a pending transfer that recipient must claim
      *
-     * Enhanced Circuit Public Signals (7 total):
+     * Enhanced Circuit Public Signals (8 total):
+     * Outputs (0-4):
      * [0] valid (output)
      * [1] newBalance (output)
      * [2] newBalanceCommitment (output)
      * [3] recipientHash (output) - hash for claiming
-     * [4] assetId (public input)
-     * [5] maxAmount (public input)
-     * [6] balanceCommitment (public input)
+     * [4] nullifier (output) - prevents double-spending (Phase 4)
+     * Public Inputs (5-7):
+     * [5] assetId (public input)
+     * [6] maxAmount (public input)
+     * [7] balanceCommitment (public input)
      */
     function privateTransfer(
         uint256[24] calldata proof,
-        uint256[7] calldata publicSignals
+        uint256[8] calldata publicSignals
     ) external whenNotPaused {
-        // Parse public signals (Enhanced Circuit order)
+        // Parse public signals (CORRECTED Circuit order)
         uint256 valid = publicSignals[0];                // Circuit output
         uint256 newBalance = publicSignals[1];           // Circuit output
         uint256 newBalanceCommitment = publicSignals[2]; // Circuit output
-        uint256 recipientHash = publicSignals[3];        // Circuit output (NEW)
-        uint256 assetId = publicSignals[4];              // Public input
-        uint256 maxAmount = publicSignals[5];            // Public input
-        uint256 balanceCommitment = publicSignals[6];    // Public input
+        uint256 recipientHash = publicSignals[3];        // Circuit output
+        uint256 nullifier = publicSignals[4];            // Circuit output (PHASE 4)
+        uint256 assetId = publicSignals[5];              // Public input
+        uint256 maxAmount = publicSignals[6];            // Public input
+        uint256 balanceCommitment = publicSignals[7];    // Public input
 
         // Validate asset is whitelisted
         require(whitelistedAssets[assetId], "Asset not whitelisted");
+
+        // PHASE 4: Check nullifier hasn't been used (prevents double-spending)
+        require(!nullifiers[nullifier], "Double spend: nullifier already used");
 
         // Verify the PLONK proof
         bool proofValid = verifier.verifyProof(proof, publicSignals);
@@ -166,6 +181,9 @@ contract PrivateTransferV3 {
 
         // Update sender's balance
         balances[msg.sender] = newBalance;
+
+        // PHASE 4: Mark nullifier as used to prevent replay attacks
+        nullifiers[nullifier] = true;
 
         // Create pending transfer for recipient to claim
         require(pendingTransfers[recipientHash].amount == 0, "Hash collision");
@@ -187,6 +205,8 @@ contract PrivateTransferV3 {
             valid == 1,
             newBalance
         );
+
+        emit NullifierUsed(nullifier, msg.sender, block.timestamp);
     }
 
     // ============================================

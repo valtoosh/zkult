@@ -6,14 +6,15 @@ include "circomlib/circuits/poseidon.circom";
 
 /*
  * zkUlt PLONK Enhanced Transfer Circuit with Hash-Based Claiming
- * Includes commitment scheme for recipient privacy
+ * Includes commitment scheme for recipient privacy + Nullifier System (Phase 4)
  *
  * This version adds:
  * - Balance commitment for privacy
  * - Recipient hash for anonymous claiming (Phase 3)
+ * - Nullifier for replay attack prevention (Phase 4)
  * - Poseidon hash for efficiency
  *
- * Public Signals Order (7 total):
+ * Public Signals Order (8 total):
  * [0] valid - transfer validation result
  * [1] newBalance - sender's balance after transfer
  * [2] newBalanceCommitment - cryptographic commitment to new balance
@@ -21,6 +22,7 @@ include "circomlib/circuits/poseidon.circom";
  * [4] assetId - public asset identifier
  * [5] maxAmount - public maximum allowed amount
  * [6] balanceCommitment - cryptographic commitment to original balance
+ * [7] nullifier - unique identifier to prevent double-spending (Phase 4)
  */
 
 template PlonkTransferCheckEnhanced() {
@@ -46,6 +48,7 @@ template PlonkTransferCheckEnhanced() {
     signal output newBalance;
     signal output newBalanceCommitment; // NEW: Commitment to new balance
     signal output recipientHash;        // NEW: Hash for recipient claiming
+    signal output nullifier;            // PHASE 4: Nullifier for replay protection
     
     // ============================================
     // COMMITMENT VERIFICATION
@@ -100,6 +103,16 @@ template PlonkTransferCheckEnhanced() {
     recipientHasher.inputs[0] <== recipientAddressHash;
     recipientHasher.inputs[1] <== transferAmount;
     recipientHash <== recipientHasher.out;
+
+    // PHASE 4: Generate nullifier for replay attack prevention
+    // Nullifier = Hash(balanceCommitment, salt, transferAmount)
+    // This creates a unique identifier that proves commitment spending
+    // without revealing the actual balance or salt
+    component nullifierHasher = Poseidon(3);
+    nullifierHasher.inputs[0] <== balanceCommitment;
+    nullifierHasher.inputs[1] <== salt;
+    nullifierHasher.inputs[2] <== transferAmount;
+    nullifier <== nullifierHasher.out;
 
     // Combine all checks
     signal intermediate1;
